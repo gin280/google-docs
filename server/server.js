@@ -3,17 +3,17 @@ const Document = require("./Document");
 const Template = require("./Template");
 const _ = require("lodash");
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === "production";
 
-console.info(isProduction, 'isProduction')
+console.info(isProduction, "isProduction");
 
 const MONGODB_URI = isProduction
   ? process.env.MONGODB_URI_PROD // 你可以在生产环境的配置中设定这个值
-  : 'mongodb://localhost/google-docs-clone';
+  : "mongodb://localhost/google-docs-clone";
 
 const CORS_ORIGIN = isProduction
-  ? 'http://your-production-domain.com'
-  : 'http://localhost:3000';
+  ? process.env.CORS_ORIGIN_PROD
+  : "http://localhost:3000";
 
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
@@ -36,7 +36,7 @@ io.on("connection", (socket) => {
     try {
       const newTemplate = new Template({
         _id: templateId,
-        data: content
+        data: content,
       });
       await newTemplate.save();
       callback(true); // 通知客户端保存成功
