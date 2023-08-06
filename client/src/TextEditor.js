@@ -87,7 +87,7 @@ export default function TextEditor() {
   const quillRef = useRef(null);
 
   useEffect(() => {
-    const s = io("http://localhost:3001");
+    const s = io(process.env.REACT_APP_SOCKET_URL);
     setSocket(s);
 
     return () => {
