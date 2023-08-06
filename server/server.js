@@ -2,20 +2,9 @@ const mongoose = require("mongoose");
 const Document = require("./Document");
 const Template = require("./Template");
 const _ = require("lodash");
+require('dotenv').config();
 
-const isProduction = process.env.NODE_ENV === "production";
-
-console.info(isProduction, "isProduction");
-
-const MONGODB_URI = isProduction
-  ? process.env.MONGODB_URI_PROD // 你可以在生产环境的配置中设定这个值
-  : "mongodb://localhost/google-docs-clone";
-
-const CORS_ORIGIN = isProduction
-  ? process.env.CORS_ORIGIN_PROD
-  : "http://localhost:3000";
-
-mongoose.connect(MONGODB_URI, {
+mongoose.connect(process.env.MONGODB_URI_PROD, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useFindAndModify: false,
@@ -24,7 +13,7 @@ mongoose.connect(MONGODB_URI, {
 
 const io = require("socket.io")(3001, {
   cors: {
-    origin: CORS_ORIGIN,
+    origin: process.env.CORS_ORIGIN_PROD,
     methods: ["GET", "POST"],
   },
 });
