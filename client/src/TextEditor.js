@@ -21,6 +21,8 @@ class CustomToolbar {
     this.options = options;
     const toolbar = quill.getModule("toolbar");
 
+    this.fetchTemplates();
+    
     // Save status
     let saveStatusElement = document.createElement("span");
     saveStatusElement.id = "save-status";
@@ -40,6 +42,13 @@ class CustomToolbar {
     saveTemplateButton.style.cursor = "pointer";
     saveTemplateButton.onclick = () => this.saveTemplate();
     toolbar.container.appendChild(saveTemplateButton);
+
+    // Template dropdown
+    let templateDropdown = document.createElement("select");
+    templateDropdown.id = "template-dropdown";
+    templateDropdown.onchange = (e) => this.insertTemplate(e.target.value);
+    templateDropdown.style.marginRight = "10px";
+    toolbar.container.appendChild(templateDropdown);
 
     // View history button
     let viewHistoryButton = document.createElement("span");
@@ -76,6 +85,27 @@ class CustomToolbar {
   viewHistory() {
     this.options.history.push(`/diff/${this.options.documentId}`);
   }
+
+  // Fetch templates and populate dropdown
+  fetchTemplates() {
+    this.options.socket.emit("get-templates", (templates) => {
+      let dropdown = document.getElementById("template-dropdown");
+      templates.forEach((template) => {
+        let option = document.createElement("option");
+        option.value = template._id;
+        option.innerText = template.name; // Assuming templates have a 'name' field
+        dropdown.appendChild(option);
+      });
+    });
+  }
+
+  // Insert selected template
+  insertTemplate(templateId) {
+    this.options.socket.emit("get-template", templateId, (template) => {
+      const cursorPosition = this.quill.getSelection().index;
+      this.quill.insertText(cursorPosition, template.data);
+    });
+  }
 }
 
 export default function TextEditor() {
@@ -102,20 +132,19 @@ export default function TextEditor() {
     }
   }, [saveStatus]);
 
-
   useEffect(() => {
-    if (socket == null) return
+    if (socket == null) return;
 
-    const handler = delta => {
-      console.info('receive-changes', delta)
-      setEditorHtml(delta)
-    }
-    socket.on("receive-changes", handler)
+    const handler = (delta) => {
+      console.info("receive-changes", delta);
+      setEditorHtml(delta);
+    };
+    socket.on("receive-changes", handler);
 
     return () => {
-      socket.off("receive-changes", handler)
-    }
-  }, [socket])
+      socket.off("receive-changes", handler);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (socket == null) return;
@@ -133,7 +162,7 @@ export default function TextEditor() {
   const handleChange = (content, delta, source, editor) => {
     setEditorHtml(content);
     if (source !== "user") return;
-    console.info('send-changes', content)
+    console.info("send-changes", content);
     socket.emit("send-changes", content);
 
     setSaveStatus("正在保存...");

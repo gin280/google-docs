@@ -2,9 +2,20 @@ const mongoose = require("mongoose");
 const Document = require("./Document");
 const Template = require("./Template");
 const _ = require("lodash");
-require('dotenv').config();
 
-mongoose.connect(process.env.MONGODB_URI_PROD, {
+const isProduction = process.env.NODE_ENV === "production";
+
+console.info(isProduction, "isProduction");
+
+const MONGODB_URI = isProduction
+  ? process.env.MONGODB_URI_PROD // 你可以在生产环境的配置中设定这个值
+  : "mongodb://localhost/google-docs-clone";
+
+const CORS_ORIGIN = isProduction
+  ? process.env.CORS_ORIGIN_PROD
+  : "http://localhost:5173";
+
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useFindAndModify: false,
@@ -13,7 +24,7 @@ mongoose.connect(process.env.MONGODB_URI_PROD, {
 
 const io = require("socket.io")(3001, {
   cors: {
-    origin: process.env.CORS_ORIGIN_PROD,
+    origin: CORS_ORIGIN,
     methods: ["GET", "POST"],
   },
 });
@@ -21,11 +32,13 @@ const io = require("socket.io")(3001, {
 const defaultValue = "";
 
 io.on("connection", (socket) => {
-  socket.on("save-as-template", async (templateId, content, callback) => {
+  socket.on("save-as-template", async (templateId, content, templateName, callback) => {
     try {
       const newTemplate = new Template({
         _id: templateId,
         data: content,
+        name: templateName,
+        timestamp: new Date().getTime(),
       });
       await newTemplate.save();
       callback(true); // 通知客户端保存成功
@@ -33,6 +46,16 @@ io.on("connection", (socket) => {
       console.error(error);
       callback(false); // 通知客户端保存失败
     }
+  });
+
+  socket.on("get-templates", async (callback) => {
+    const templates = await Template.find({});
+    callback(templates);
+  });
+
+  socket.on("get-template", async (templateId, callback) => {
+    const template = await Template.findById(templateId);
+    callback(template);
   });
 
   socket.on("get-document", async (documentId) => {
